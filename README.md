@@ -1,63 +1,71 @@
 # Finance Dashboard Backend
 
-A REST API backend for a finance dashboard system built with **Node.js**, **Express**, and **PostgreSQL**.
+A REST API backend for a finance dashboard system built with **Node.js**, **Express**, and **MongoDB**.
 
 ---
 
 ## Tech Stack
 
-| Layer       | Choice                   |
-|-------------|--------------------------|
-| Runtime     | Node.js                  |
-| Framework   | Express.js               |
-| Database    | PostgreSQL                |
-| Auth        | JWT (jsonwebtoken)        |
-| Passwords   | bcryptjs                 |
-| Validation  | express-validator         |
+| Layer      | Choice             |
+|------------|--------------------|
+| Runtime    | Node.js            |
+| Framework  | Express.js         |
+| Database   | MongoDB Atlas      |
+| ODM        | Mongoose           |
+| Auth       | JWT (jsonwebtoken) |
+| Passwords  | bcryptjs           |
+| Validation | express-validator  |
 
 ---
 
 ## Project Structure
 
 ```
-src/
-├── config/
-│   ├── db.js          # PostgreSQL connection pool
-│   └── schema.sql     # Database schema + seed data
-├── middleware/
-│   ├── auth.js        # JWT authentication middleware
-│   └── rbac.js        # Role-based access control
-├── controllers/
-│   ├── authController.js      # Login, Register, Me
-│   ├── userController.js      # Admin: CRUD for users
-│   ├── recordController.js    # Financial records CRUD
-│   └── dashboardController.js # Analytics & summaries
-├── routes/
-│   ├── auth.js        # /api/auth/*
-│   ├── users.js       # /api/users/*
-│   ├── records.js     # /api/records/*
-│   └── dashboard.js   # /api/dashboard/*
-├── validators/
-│   └── index.js       # All input validators
-└── app.js             # Express entry point
+finance-dashboard/
+├── src/
+│   ├── config/
+│   │   ├── db.js                  # MongoDB connection (Mongoose)
+│   │   └── seed.js                # Seed script — creates users + records
+│   ├── models/
+│   │   ├── User.js                # User schema (role, status)
+│   │   └── FinancialRecord.js     # Financial record schema (soft delete)
+│   ├── middleware/
+│   │   ├── auth.js                # JWT authentication middleware
+│   │   └── rbac.js                # Role-based access control
+│   ├── controllers/
+│   │   ├── authController.js      # Register, Login, Me
+│   │   ├── userController.js      # Admin: CRUD for users
+│   │   ├── recordController.js    # Financial records CRUD
+│   │   └── dashboardController.js # Analytics & summaries
+│   ├── routes/
+│   │   ├── auth.js                # /api/auth/*
+│   │   ├── users.js               # /api/users/*
+│   │   ├── records.js             # /api/records/*
+│   │   └── dashboard.js           # /api/dashboard/*
+│   ├── validators/
+│   │   └── index.js               # All input validation rules
+│   └── app.js                     # Express entry point
+├── .env.example
+├── .gitignore
+└── package.json
 ```
 
 ---
 
 ## Roles & Permissions
 
-| Action                        | Viewer | Analyst | Admin |
-|-------------------------------|--------|---------|-------|
-| Login / Register              | ✅     | ✅      | ✅    |
-| View financial records        | ✅     | ✅      | ✅    |
-| View recent activity          | ✅     | ✅      | ✅    |
-| View dashboard summary        | ❌     | ✅      | ✅    |
-| View category totals          | ❌     | ✅      | ✅    |
-| View monthly/weekly trends    | ❌     | ✅      | ✅    |
-| Create financial records      | ❌     | ❌      | ✅    |
-| Update financial records      | ❌     | ❌      | ✅    |
-| Delete financial records      | ❌     | ❌      | ✅    |
-| Manage users (CRUD)           | ❌     | ❌      | ✅    |
+| Action                     | Viewer | Analyst | Admin |
+|----------------------------|--------|---------|-------|
+| Register / Login           | ✅     | ✅      | ✅    |
+| View financial records     | ✅     | ✅      | ✅    |
+| View recent activity       | ✅     | ✅      | ✅    |
+| View dashboard summary     | ❌     | ✅      | ✅    |
+| View category totals       | ❌     | ✅      | ✅    |
+| View monthly/weekly trends | ❌     | ✅      | ✅    |
+| Create financial records   | ❌     | ❌      | ✅    |
+| Update financial records   | ❌     | ❌      | ✅    |
+| Delete financial records   | ❌     | ❌      | ✅    |
+| Manage users (CRUD)        | ❌     | ❌      | ✅    |
 
 ---
 
@@ -73,24 +81,25 @@ npm install
 ### 2. Set up environment variables
 ```bash
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials and JWT secret
 ```
 
-### 3. Create PostgreSQL database
-```sql
-CREATE DATABASE finance_dashboard;
+Edit `.env` with your values:
+```env
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb+srv://youruser:yourpassword@cluster0.xxxxx.mongodb.net/finance_dashboard?retryWrites=true&w=majority
+JWT_SECRET=your_super_secret_key_make_it_long
+JWT_EXPIRES_IN=7d
 ```
 
-### 4. Run the schema
-```bash
-psql -U postgres -d finance_dashboard -f src/config/schema.sql
-```
+> Get `MONGO_URI` from [mongodb.com](https://mongodb.com) → your cluster → **Connect** → **Drivers**
 
-### 5. Seed the database (recommended)
+### 3. Seed the database
 ```bash
 npm run seed
 ```
-Creates **3 users** and ~200 records across the last 12 months so all dashboard endpoints return real data immediately.
+
+Creates 3 users and ~200 financial records spread across the last 12 months.
 
 | Role    | Email             | Password  |
 |---------|-------------------|-----------|
@@ -98,84 +107,133 @@ Creates **3 users** and ~200 records across the last 12 months so all dashboard 
 | analyst | alice@finance.com | Alice@123 |
 | viewer  | bob@finance.com   | Bob@123   |
 
-### 6. Start the server
+### 4. Start the server
 ```bash
-npm run dev   # development with auto-reload
-npm start     # production
+npm run dev    # development with auto-reload
+npm start      # production
 ```
 
 Server runs on `http://localhost:5000`
 
 ---
 
-## Testing with Postman
+## API Reference
 
-Import `Finance_Dashboard.postman_collection.json` into Postman.
-
-1. Run **Login (Admin)** — the token is **saved automatically** via a test script into `{{token}}`
-2. All other requests pick up `{{token}}` from the Authorization header automatically
-3. Switch roles by running **Login (Analyst)** or **Login (Viewer)** — the token updates instantly
-4. Use the **❌ Access Control Tests** folder to verify RBAC returns correct 401/403 responses
+### Health Check
+```
+GET /health
+```
+```json
+{ "status": "ok", "timestamp": "2024-01-15T10:30:00.000Z" }
+```
 
 ---
 
-## API Reference
-
 ### Auth
 
-| Method | Endpoint              | Access | Description         |
-|--------|-----------------------|--------|---------------------|
-| POST   | `/api/auth/register`  | Public | Register new user   |
-| POST   | `/api/auth/login`     | Public | Login, get JWT      |
-| GET    | `/api/auth/me`        | Any    | Get current user    |
+| Method | Endpoint             | Access | Description       |
+|--------|----------------------|--------|-------------------|
+| POST   | `/api/auth/register` | Public | Register new user |
+| POST   | `/api/auth/login`    | Public | Login, get JWT    |
+| GET    | `/api/auth/me`       | Any    | Get current user  |
 
 **Register body:**
 ```json
-{ "name": "John", "email": "john@test.com", "password": "secret123" }
+{
+  "name": "John Doe",
+  "email": "john@test.com",
+  "password": "secret123"
+}
 ```
 
 **Login body:**
 ```json
-{ "email": "john@test.com", "password": "secret123" }
+{
+  "email": "john@test.com",
+  "password": "secret123"
+}
+```
+
+**Login response:**
+```json
+{
+  "success": true,
+  "message": "Login successful.",
+  "data": {
+    "user": {
+      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+      "name": "John Doe",
+      "email": "john@test.com",
+      "role": "viewer",
+      "status": "active"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
 ```
 
 ---
 
 ### Users (Admin only)
 
-| Method | Endpoint         | Description               |
-|--------|------------------|---------------------------|
-| GET    | `/api/users`     | List users (paginated)    |
-| GET    | `/api/users/:id` | Get user by ID            |
-| POST   | `/api/users`     | Create user with role     |
-| PUT    | `/api/users/:id` | Update name/role/status   |
-| DELETE | `/api/users/:id` | Delete user               |
+| Method | Endpoint          | Description             |
+|--------|-------------------|-------------------------|
+| GET    | `/api/users`      | List users (paginated)  |
+| GET    | `/api/users/:id`  | Get user by ID          |
+| POST   | `/api/users`      | Create user with role   |
+| PUT    | `/api/users/:id`  | Update name/role/status |
+| DELETE | `/api/users/:id`  | Delete user             |
 
-**Query params for GET /api/users:** `status`, `role`, `page`, `limit`
+**Query params for GET `/api/users`:**
+
+| Param  | Example             | Description       |
+|--------|---------------------|-------------------|
+| role   | `?role=analyst`     | Filter by role    |
+| status | `?status=active`    | Filter by status  |
+| page   | `?page=1`           | Page number       |
+| limit  | `?limit=10`         | Items per page    |
 
 **Create user body:**
 ```json
-{ "name": "Alice", "email": "alice@test.com", "password": "pass123", "role": "analyst" }
+{
+  "name": "Alice",
+  "email": "alice@test.com",
+  "password": "pass123",
+  "role": "analyst"
+}
 ```
 
-**Update user body (all optional):**
+**Update user body (all fields optional):**
 ```json
-{ "name": "Alice B", "role": "admin", "status": "inactive" }
+{
+  "name": "Alice B",
+  "role": "analyst",
+  "status": "inactive"
+}
 ```
 
 ---
 
 ### Financial Records
 
-| Method | Endpoint            | Access  | Description              |
-|--------|---------------------|---------|--------------------------|
-| GET    | `/api/records`      | Viewer+ | List records (paginated) |
-| GET    | `/api/records/:id`  | Viewer+ | Get single record        |
-| POST   | `/api/records`      | Admin   | Create record            |
-| PUT    | `/api/records/:id`  | Admin   | Update record            |
-| DELETE | `/api/records/:id`  | Admin   | Soft delete record       |
+| Method | Endpoint             | Access  | Description              |
+|--------|----------------------|---------|--------------------------|
+| GET    | `/api/records`       | Viewer+ | List records (paginated) |
+| GET    | `/api/records/:id`   | Viewer+ | Get single record        |
+| POST   | `/api/records`       | Admin   | Create record            |
+| PUT    | `/api/records/:id`   | Admin   | Update record            |
+| DELETE | `/api/records/:id`   | Admin   | Soft delete record       |
 
-**Query params for GET /api/records:** `type`, `category`, `date_from`, `date_to`, `page`, `limit`
+**Query params for GET `/api/records`:**
+
+| Param     | Example                  | Description         |
+|-----------|--------------------------|---------------------|
+| type      | `?type=income`           | income or expense   |
+| category  | `?category=Rent`         | Partial match       |
+| date_from | `?date_from=2024-01-01`  | Start date          |
+| date_to   | `?date_to=2024-12-31`    | End date            |
+| page      | `?page=1`                | Page number         |
+| limit     | `?limit=10`              | Items per page      |
 
 **Create record body:**
 ```json
@@ -188,30 +246,41 @@ Import `Finance_Dashboard.postman_collection.json` into Postman.
 }
 ```
 
+**Update record body (all fields optional):**
+```json
+{
+  "amount": 5500.00,
+  "notes": "Updated salary"
+}
+```
+
 ---
 
 ### Dashboard
 
-| Method | Endpoint                         | Access  | Description             |
-|--------|----------------------------------|---------|-------------------------|
-| GET    | `/api/dashboard/recent`          | Viewer+ | Last N transactions     |
-| GET    | `/api/dashboard/summary`         | Analyst+| Income, expense, net    |
-| GET    | `/api/dashboard/category-totals` | Analyst+| Totals by category      |
-| GET    | `/api/dashboard/monthly-trends`  | Analyst+| Monthly trends          |
-| GET    | `/api/dashboard/weekly-trends`   | Analyst+| Weekly trends           |
+| Method | Endpoint                          | Access   | Description           |
+|--------|-----------------------------------|----------|-----------------------|
+| GET    | `/api/dashboard/recent`           | Viewer+  | Last N transactions   |
+| GET    | `/api/dashboard/summary`          | Analyst+ | Income, expense, net  |
+| GET    | `/api/dashboard/category-totals`  | Analyst+ | Totals by category    |
+| GET    | `/api/dashboard/monthly-trends`   | Analyst+ | Monthly trends        |
+| GET    | `/api/dashboard/weekly-trends`    | Analyst+ | Weekly trends         |
 
 **Query params:**
-- `/summary`: `date_from`, `date_to`
-- `/category-totals`: `type`, `date_from`, `date_to`
-- `/monthly-trends`: `months` (default 12, max 24)
-- `/weekly-trends`: `weeks` (default 8, max 52)
-- `/recent`: `limit` (default 10, max 50)
+
+| Endpoint           | Params                          |
+|--------------------|---------------------------------|
+| `/recent`          | `limit` (default 10, max 50)    |
+| `/summary`         | `date_from`, `date_to`          |
+| `/category-totals` | `type`, `date_from`, `date_to`  |
+| `/monthly-trends`  | `months` (default 12, max 24)   |
+| `/weekly-trends`   | `weeks` (default 8, max 52)     |
 
 ---
 
 ## Authentication
 
-All protected routes require a Bearer token:
+All protected routes require a Bearer token in the header:
 ```
 Authorization: Bearer <your_jwt_token>
 ```
@@ -220,6 +289,7 @@ Authorization: Bearer <your_jwt_token>
 
 ## Error Response Format
 
+**General error:**
 ```json
 {
   "success": false,
@@ -227,13 +297,30 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
-Validation errors:
+**Validation error (400):**
 ```json
 {
   "success": false,
   "errors": [
-    { "field": "email", "msg": "Invalid email address." }
+    { "msg": "Email is required." },
+    { "msg": "Password must be at least 6 characters." }
   ]
+}
+```
+
+**Unauthorized (401):**
+```json
+{
+  "success": false,
+  "message": "Access denied. No token provided."
+}
+```
+
+**Forbidden (403):**
+```json
+{
+  "success": false,
+  "message": "Access denied. Required: admin. Your role: viewer."
 }
 ```
 
@@ -241,25 +328,27 @@ Validation errors:
 
 ## Assumptions Made
 
-1. **Self-registration** gives `viewer` role by default; admins must upgrade roles.
-2. **Soft delete** is used for financial records (sets `deleted_at`); hard delete is used for users.
-3. **Amounts** must always be positive; type (`income`/`expense`) determines the sign in calculations.
-4. **Pagination** defaults to 10 items per page for all list endpoints.
-5. **JWT expiry** is set to 7 days by default (configurable via `JWT_EXPIRES_IN`).
-6. An admin **cannot deactivate or delete themselves** to prevent lockout.
+1. **Self-registration** always assigns `viewer` role — only admins can promote users.
+2. **Soft delete** is used for financial records (`deletedAt` timestamp); hard delete for users.
+3. **Amounts** must always be positive; `type` field (income/expense) determines sign in calculations.
+4. **Pagination** defaults to 10 items per page across all list endpoints.
+5. **JWT expiry** defaults to 7 days (configurable via `JWT_EXPIRES_IN`).
+6. An admin **cannot deactivate, demote, or delete themselves** to prevent lockout.
+7. All financial records are linked to the user who created them.
 
 ---
 
 ## Features Implemented
 
-- ✅ JWT authentication
+- ✅ JWT authentication (register, login, token verification)
 - ✅ Role-based access control (viewer / analyst / admin)
-- ✅ Full CRUD for financial records
+- ✅ Full CRUD for financial records with soft delete
 - ✅ Full CRUD for user management
-- ✅ Soft delete for records
-- ✅ Pagination on all list endpoints
 - ✅ Filtering by type, category, date range
-- ✅ Dashboard: summary, category totals, monthly & weekly trends, recent activity
-- ✅ Input validation with descriptive errors
+- ✅ Pagination on all list endpoints
+- ✅ Dashboard: summary, category totals, monthly trends, weekly trends, recent activity
+- ✅ MongoDB aggregation pipelines for analytics
+- ✅ Input validation with descriptive error messages
 - ✅ Global error handler
 - ✅ Request logger
+- ✅ Seed script with realistic 12-month financial data
