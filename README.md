@@ -87,7 +87,7 @@ Edit `.env` with your values:
 ```env
 PORT=5000
 NODE_ENV=development
-MONGO_URI=mongodb+srv://youruser:yourpassword@cluster0.xxxxx.mongodb.net/finance_dashboard?retryWrites=true&w=majority
+MONGO_URL=your mongo connection string
 JWT_SECRET=your_super_secret_key_make_it_long
 JWT_EXPIRES_IN=7d
 ```
